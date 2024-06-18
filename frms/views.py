@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-
+from rest_framework_simplejwt import serializers
 from .serializers import (
     BranchStockSerializer,
     UserRegistrationSerializer,
@@ -40,6 +40,14 @@ class BranchCreateView(generics.CreateAPIView):
     queryset = Branch.objects.all()
     serializer_class = BranchSerializer
     permission_classes = [IsSuperuser]
+
+    def perform_create(self, serializer):
+        company_id = self.request.data.get('company')
+        if company_id:
+            company = Company.objects.get(id=company_id)
+            serializer.save(company=company)
+        else:
+            raise serializers.ValidationError("Company ID is required.")
 
 class AdminUserCreateView(generics.CreateAPIView):
     queryset = CustomUser.objects.all()

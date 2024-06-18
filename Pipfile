@@ -8,6 +8,7 @@ pip = "*"
 django = "*"
 djangorestframework = "*"
 djangorestframework-simplejwt = "*"
+psycopg2-binary = "*"
 
 [dev-packages]
 
