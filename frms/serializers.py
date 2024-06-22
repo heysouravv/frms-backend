@@ -41,10 +41,23 @@ class ProductSerializer(serializers.ModelSerializer):
         read_only_fields = ['created_at', 'updated_at']
 
 class ProductPriceHistorySerializer(serializers.ModelSerializer):
+    old_price = serializers.SerializerMethodField()
+    new_price = serializers.SerializerMethodField()
+    updated_at = serializers.SerializerMethodField()
+    product_details = ProductSerializer(source='product', read_only=True)
+
     class Meta:
         model = ProductPriceHistory
-        fields = '__all__'
-        read_only_fields = ['effective_date']
+        fields = ['old_price', 'new_price', 'effective_date', 'updated_at', 'product_details']
+
+    def get_old_price(self, obj):
+        return obj.product.price
+
+    def get_new_price(self, obj):
+        return obj.price
+
+    def get_updated_at(self, obj):
+        return obj.product.updated_at
 
 class CompanySerializer(serializers.ModelSerializer):
     class Meta:

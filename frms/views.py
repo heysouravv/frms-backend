@@ -133,7 +133,7 @@ class ProductPriceHistoryListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        return ProductPriceHistory.objects.filter(product__company=user.company)
+        return ProductPriceHistory.objects.filter(product__company=user.company).select_related('product')
 
 class BranchStockListCreateView(generics.ListCreateAPIView):
     serializer_class = BranchStockSerializer
