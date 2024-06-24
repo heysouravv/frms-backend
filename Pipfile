@@ -11,6 +11,8 @@ djangorestframework-simplejwt = "*"
 psycopg2-binary = "*"
 pymysql = "*"
 django-cors-headers = "*"
+boto3 = "*"
+uuid = "*"
 
 [dev-packages]
 

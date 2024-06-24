@@ -153,3 +153,45 @@ class CustomUser(AbstractUser):
         related_name='customuser_set',  # Add this line
         related_query_name='customuser',  # Add this line
     )
+
+# models.py
+class Customer(models.Model):
+    name = models.CharField(max_length=100)
+    email = models.EmailField()
+    phone = models.CharField(max_length=20)
+    address = models.TextField()
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE)
+    # Add any additional fields as needed
+
+    def __str__(self):
+        return self.name
+
+class Supplier(models.Model):
+    name = models.CharField(max_length=100)
+    email = models.EmailField()
+    phone = models.CharField(max_length=20)
+    address = models.TextField()
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE)
+    # Add any additional fields as needed
+
+    def __str__(self):
+        return self.name
+
+class Sale(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.IntegerField()
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE)
+    sale_date = models.DateTimeField(auto_now_add=True)
+    # Add any additional fields as needed
+
+    def __str__(self):
+        return f"Sale #{self.id}"
+
+class ImportJob(models.Model):
+    job_id = models.CharField(max_length=100, unique=True)
+    status = models.CharField(max_length=20)
+    error_message = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)

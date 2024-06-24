@@ -5,7 +5,11 @@ from .models import (
     Branch,
     Product,
     ProductPriceHistory,
-    BranchStock
+    BranchStock,
+    Sale,
+    Customer,
+    Supplier,
+    ImportJob
 )
 from django.contrib.auth import authenticate
 
@@ -132,3 +136,27 @@ class UserTreeSerializer(serializers.ModelSerializer):
     def get_branches(self, obj):
         branches = Branch.objects.filter(company=obj.company)
         return BranchSerializer(branches, many=True).data
+
+class SaleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Sale
+        fields = ['id', 'product', 'quantity', 'price', 'customer', 'branch', 'sale_date']
+        read_only_fields = ['branch', 'sale_date']
+
+# serializers.py
+class CustomerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Customer
+        fields = ['id', 'name', 'email', 'phone', 'address', 'branch']
+        read_only_fields = ['branch']
+
+class SupplierSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Supplier
+        fields = ['id', 'name', 'email', 'phone', 'address', 'branch']
+        read_only_fields = ['branch']
+
+class ImportJobSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ImportJob
+        fields = ['job_id', 'status', 'error_message', 'created_at', 'updated_at']

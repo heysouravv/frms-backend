@@ -1,5 +1,8 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
+import boto3
+import csv
+import uuid
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -13,7 +16,10 @@ from .serializers import (
     UserTreeSerializer,
     ProductSerializer,
     ProductPriceHistorySerializer,
-    BranchStockSerializer
+    BranchStockSerializer,
+    CustomerSerializer,
+    SupplierSerializer,
+    ImportJobSerializer
 )
 from .models import (
     CustomUser,
@@ -21,7 +27,10 @@ from .models import (
     Branch,
     Product,
     BranchStock,
-    ProductPriceHistory
+    ProductPriceHistory,
+    Customer,
+    Supplier,
+    ImportJob
 )
 from .permissions import (
     IsSuperuser,
@@ -30,6 +39,9 @@ from .permissions import (
     IsFinance
 )
 from rest_framework.permissions import IsAuthenticated
+from django.db import transaction
+from rest_framework.response import Response
+from rest_framework import generics, permissions, status
 
 class CompanyCreateView(generics.CreateAPIView):
     queryset = Company.objects.all()
@@ -158,3 +170,109 @@ class BranchStockRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView
     def get_queryset(self):
         user = self.request.user
         return BranchStock.objects.filter(branch__company=user.company)
+
+# views.py
+class CustomerListCreateView(generics.ListCreateAPIView):
+    serializer_class = CustomerSerializer
+    permission_classes = [permissions.IsAuthenticated, IsCashier]
+
+    def get_queryset(self):
+        branch = self.request.user.branch
+        return Customer.objects.filter(branch=branch)
+
+    def perform_create(self, serializer):
+        branch = self.request.user.branch
+        serializer.save(branch=branch)
+
+class CustomerRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = CustomerSerializer
+    permission_classes = [permissions.IsAuthenticated, IsCashier]
+
+    def get_queryset(self):
+        branch = self.request.user.branch
+        return Customer.objects.filter(branch=branch)
+
+class SupplierListCreateView(generics.ListCreateAPIView):
+    serializer_class = SupplierSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+
+    def get_queryset(self):
+        branch = self.request.user.branch
+        return Supplier.objects.filter(branch=branch)
+
+    def perform_create(self, serializer):
+        branch = self.request.user.branch
+        serializer.save(branch=branch)
+
+class SupplierRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = SupplierSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+
+    def get_queryset(self):
+        branch = self.request.user.branch
+        return Supplier.objects.filter(branch=branch)
+
+class BulkImportView(generics.CreateAPIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+
+    def post(self, request, *args, **kwargs):
+        file_path = request.data.get('file_path')
+        if not file_path:
+            return Response({'error': 'File path is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        job_id = str(uuid.uuid4())
+        import_job = ImportJob.objects.create(job_id=job_id, status='pending')
+
+        # Run the import process in the background
+        transaction.on_commit(lambda: self.perform_import(file_path, job_id))
+
+        serializer = ImportJobSerializer(import_job)
+        return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
+
+    @staticmethod
+    def perform_import(file_path, job_id):
+        import_job = ImportJob.objects.get(job_id=job_id)
+        import_job.status = 'processing'
+        import_job.save()
+
+        try:
+            s3 = boto3.client('s3')
+            bucket_name = 'your-bucket-name'  # Replace with your AWS S3 bucket name
+            object_key = file_path
+
+            csv_file = s3.get_object(Bucket=bucket_name, Key=object_key)
+            csv_content = csv_file['Body'].read().decode('utf-8')
+
+            reader = csv.DictReader(csv_content.splitlines())
+
+            products = []
+            for row in reader:
+                product_data = {
+                    'name': row['name'],
+                    'description': row['description'],
+                    'price': row['price'],
+                    # Add more fields as per your Product model
+                }
+                product_serializer = ProductSerializer(data=product_data)
+                if product_serializer.is_valid():
+                    products.append(product_serializer.save())
+                else:
+                    import_job.status = 'failed'
+                    import_job.error_message = str(product_serializer.errors)
+                    import_job.save()
+                    return
+
+            Product.objects.bulk_create(products)
+
+            import_job.status = 'completed'
+            import_job.save()
+        except Exception as e:
+            import_job.status = 'failed'
+            import_job.error_message = str(e)
+            import_job.save()
+
+class ImportJobStatusView(generics.RetrieveAPIView):
+    queryset = ImportJob.objects.all()
+    serializer_class = ImportJobSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+    lookup_field = 'job_id'

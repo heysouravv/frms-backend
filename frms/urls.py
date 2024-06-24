@@ -27,7 +27,13 @@ from .views import (
     ProductRetrieveUpdateDestroyView,
     ProductPriceHistoryListCreateView,
     BranchStockListCreateView,
-    BranchStockRetrieveUpdateDestroyView
+    BranchStockRetrieveUpdateDestroyView,
+    CustomerListCreateView,
+    CustomerRetrieveUpdateDestroyView,
+    SupplierListCreateView,
+    SupplierRetrieveUpdateDestroyView,
+    BulkImportView,
+    ImportJobStatusView
 )
 
 urlpatterns = [
@@ -43,5 +49,11 @@ urlpatterns = [
     path('product-price-history/', ProductPriceHistoryListCreateView.as_view(), name='product-price-history-list-create'),
     path('branch-stocks/', BranchStockListCreateView.as_view(), name='branch-stock-list-create'),
     path('branch-stocks/<int:pk>/', BranchStockRetrieveUpdateDestroyView.as_view(), name='branch-stock-retrieve-update-destroy'),
+    path('customers/', CustomerListCreateView.as_view(), name='customer-list-create'),
+    path('customers/<int:pk>/', CustomerRetrieveUpdateDestroyView.as_view(), name='customer-retrieve-update-destroy'),
+    path('suppliers/', SupplierListCreateView.as_view(), name='supplier-list-create'),
+    path('suppliers/<int:pk>/', SupplierRetrieveUpdateDestroyView.as_view(), name='supplier-retrieve-update-destroy'),
+    path('bulk-import/', BulkImportView.as_view(), name='bulk-import'),
+    path('import-job-status/<str:job_id>/', ImportJobStatusView.as_view(), name='import-job-status'),
     # Add other routes as needed
 ]
