@@ -1,0 +1,7 @@
+sudo certbot --nginx -d api.ifsmserp.com
+sudo certbot --nginx -d api.ifsmserp.com --register-unsafely-without-email
+sudo apt-get install certbot python3-certbot-nginx
+sudo nginx -t
+sudo service nginx reload
+sudo crontab -e
+0 0,12 * * * /usr/bin/certbot renew --quiet
